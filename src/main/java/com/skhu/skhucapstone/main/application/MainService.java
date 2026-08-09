@@ -112,21 +112,18 @@ public class MainService {
                 .build();
     }
 
-    private ClubFeedRes toClubFeedRes(
-            PostResponse post
-    ) {
+    private ClubFeedRes toClubFeedRes(PostResponse post) {
         return ClubFeedRes.builder()
                 .clubName(post.getClubName())
                 .postId(post.getPostId())
                 .writerName(post.getWriterName())
-                .writerCoffeeChatProfileImageUrl(
-                        post.getWriterCoffeeChatProfileImageUrl()
-                )
+                .writerCoffeeChatProfileImageUrl(post.getWriterCoffeeChatProfileImageUrl())
                 .createdAt(post.getCreatedAt())
                 .imageUrls(post.getImageUrls())
                 .content(post.getContent())
                 .likeCount(post.getLikeCount())
                 .liked(post.isLiked())
+                .comments(post.getComments())
                 .build();
     }
 }
