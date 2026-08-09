@@ -127,8 +127,13 @@ public class ClubMemberService {
                     String coffeeChatProfileImageUrl =
                             coffeeChatProfileRepository
                                     .findByUserUserId(userId)
-                                    .map(profile -> profile.getProfileImageUrl())
-                                    .orElse(null);
+                                    .map(profile ->
+                                            profile.getProfileImageUrl() != null
+                                                    && !profile.getProfileImageUrl().isBlank()
+                                                    ? profile.getProfileImageUrl()
+                                                    : clubMember.getUser().getProfileImage()
+                                    )
+                                    .orElse(clubMember.getUser().getProfileImage());
 
                     return ClubMemberListResponse.builder()
                             .userId(userId)
