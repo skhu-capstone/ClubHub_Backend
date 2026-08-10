@@ -28,7 +28,12 @@ public class CoffeeChatProfileRes {
                 .meetingType(profile.getMeetingType())
                 .contactLink(profile.getContactLink())
                 .introduction(profile.getIntroduction())
-                .profileImageUrl(profile.getProfileImageUrl())
+                .profileImageUrl(
+                        profile.getProfileImageUrl() != null
+                                && !profile.getProfileImageUrl().isBlank()
+                                ? profile.getProfileImageUrl()
+                                : profile.getUser().getProfileImage()
+                )
                 .isPublic(profile.getIsPublic())
                 .build();
     }

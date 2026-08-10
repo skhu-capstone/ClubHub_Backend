@@ -1,5 +1,6 @@
 package com.skhu.skhucapstone.main.api.dto.response;
 
+import com.skhu.skhucapstone.comment.api.dto.response.CommentResponse;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -27,4 +28,6 @@ public class ClubFeedRes {
     private long likeCount;
 
     private boolean liked;
+
+    private List<CommentResponse> comments;
 }

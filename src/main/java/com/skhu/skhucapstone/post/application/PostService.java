@@ -311,8 +311,13 @@ public class PostService {
         String writerCoffeeChatProfileImageUrl =
                 coffeeChatProfileRepository
                         .findByUserUserId(post.getUser().getUserId())
-                        .map(profile -> profile.getProfileImageUrl())
-                        .orElse(null);
+                        .map(profile ->
+                                profile.getProfileImageUrl() != null
+                                        && !profile.getProfileImageUrl().isBlank()
+                                        ? profile.getProfileImageUrl()
+                                        : post.getUser().getProfileImage()
+                        )
+                        .orElse(post.getUser().getProfileImage());
 
         List<CommentResponse> comments =
                 commentRepository.findByPostOrderByCreatedAtAsc(post)
