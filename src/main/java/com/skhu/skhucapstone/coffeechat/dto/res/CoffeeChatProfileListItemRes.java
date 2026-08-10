@@ -29,7 +29,12 @@ public class CoffeeChatProfileListItemRes {
                 .coffeeChatProfileId(profile.getId())
                 .userId(profile.getUser().getUserId())
                 .name(profile.getUser().getName())
-                .profileImageUrl(profile.getProfileImageUrl())
+                .profileImageUrl(
+                        profile.getProfileImageUrl() != null
+                                && !profile.getProfileImageUrl().isBlank()
+                                ? profile.getProfileImageUrl()
+                                : profile.getUser().getProfileImage()
+                )
                 .headline(profile.getHeadline())
                 .interestTopics(profile.getInterestTopics())
                 .clubs(clubs)
