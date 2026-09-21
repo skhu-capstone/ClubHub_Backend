@@ -142,7 +142,7 @@ public class ClubManagementService {
                 ));
 
         validatePresidentTransferTarget(newPresidentMember);
-        validateNoOtherPresidency(newPresident.getUserId());
+        validatePresidentLimit(newPresident.getUserId());
 
         currentPresidentMember.changeRole(ClubRole.STAFF);
         newPresidentMember.changeRole(ClubRole.PRESIDENT);
@@ -292,15 +292,15 @@ public class ClubManagementService {
         }
     }
 
-    private void validateNoOtherPresidency(Long userId) {
-        boolean alreadyPresident = clubMemberRepository
-                .existsByUserUserIdAndRoleAndClubJoinStatus(
+    private void validatePresidentLimit(Long userId) {
+        long presidentCount = clubMemberRepository
+                .countByUserUserIdAndRoleAndClubJoinStatus(
                         userId,
                         ClubRole.PRESIDENT,
                         ClubJoinStatus.JOINED
                 );
 
-        if (alreadyPresident) {
+        if (presidentCount >= 2) {
             throw new CustomException(ErrorCode.CLUB_PRESIDENT_ALREADY_EXISTS);
         }
     }
