@@ -39,14 +39,14 @@ public class ClubService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        boolean alreadyPresident = clubMemberRepository
-                .existsByUserUserIdAndRoleAndClubJoinStatus(
+        long presidentCount = clubMemberRepository
+                .countByUserUserIdAndRoleAndClubJoinStatus(
                         userId,
                         ClubRole.PRESIDENT,
                         ClubJoinStatus.JOINED
                 );
 
-        if (alreadyPresident) {
+        if (presidentCount >= 2) {
             throw new CustomException(ErrorCode.CLUB_PRESIDENT_ALREADY_EXISTS);
         }
 

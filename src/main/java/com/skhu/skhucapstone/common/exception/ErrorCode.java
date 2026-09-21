@@ -37,7 +37,7 @@ public enum ErrorCode {
 
     // Club
     CLUB_NOT_FOUND(HttpStatus.NOT_FOUND, "CLUB_NOT_FOUND", "해당 동아리를 찾을 수 없습니다."),
-    CLUB_PRESIDENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "CLUB_PRESIDENT_ALREADY_EXISTS", "이미 대표로 활동 중인 동아리가 있습니다."),
+    CLUB_PRESIDENT_ALREADY_EXISTS(HttpStatus.CONFLICT, "CLUB_PRESIDENT_ALREADY_EXISTS", "대표로 활동할 수 있는 동아리는 최대 2개입니다."),
     CLUB_MANAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "CLUB_MANAGE_FORBIDDEN", "동아리 정보를 관리할 권한이 없습니다."),
     CLUB_EVENT_MANAGE_FORBIDDEN(HttpStatus.FORBIDDEN, "CLUB_EVENT_MANAGE_FORBIDDEN", "동아리 일정을 관리할 권한이 없습니다."),
     CLUB_EVENT_INVALID_TIME(HttpStatus.BAD_REQUEST, "CLUB_EVENT_INVALID_TIME", "일정 종료 시간은 시작 시간보다 늦어야 합니다."),
