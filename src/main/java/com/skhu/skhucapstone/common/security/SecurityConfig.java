@@ -50,6 +50,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(
                                 "/api/auth/google/login",
+                                "/error",
                                 "/uploads/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
