@@ -105,13 +105,18 @@ public class ProjectRecruitmentService {
                 .build();
     }
 
-    public ProjectRecruitmentDetailRes getRecruitment(Long projectRecruitmentId) {
+    public ProjectRecruitmentDetailRes getRecruitment(Long projectRecruitmentId, Long userId) {
         ProjectRecruitmentDetailRes detail =
                 projectRecruitmentCacheService.getRecruitmentDetail(projectRecruitmentId);
 
-        // dDay는 조회 시점 기준 값이므로 캐시된 데이터에 매번 새로 계산해 붙인다.
+        // 수정·삭제 모두 작성자 본인만 가능하다.
+        boolean isWriter = userId != null && userId.equals(detail.writerId());
+
+        // dDay와 권한은 요청마다 달라지는 값이므로 캐시된 데이터에 새로 계산해 붙인다.
         return detail.toBuilder()
                 .dDay(calculateDday(detail.deadline()))
+                .canUpdate(isWriter)
+                .canDelete(isWriter)
                 .build();
     }
 

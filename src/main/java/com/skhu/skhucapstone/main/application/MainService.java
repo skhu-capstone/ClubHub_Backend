@@ -55,7 +55,8 @@ public class MainService {
     }
 
     private List<ClubCollabRes> getClubCollaborations() {
-        return clubCollabService.getCollabs(null, 0, 998)
+        // 메인은 요약 목록이라 수정·삭제 버튼이 없어 권한 판단이 필요 없다.
+        return clubCollabService.getCollabs(null, 0, 998, null)
                 .getContent()
                 .stream()
                 .map(this::toClubCollabRes)

@@ -20,6 +20,11 @@ public record ProjectRecruitmentDetailRes(
         String content,
         LocalDate deadline,
         String dDay,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+
+        // 요청한 사용자에 따라 달라지는 값이라 dDay와 마찬가지로 캐시에 저장하지 않고
+        // 서비스에서 매 요청마다 계산해 채운다. (수정·삭제 모두 작성자 본인만 가능)
+        boolean canUpdate,
+        boolean canDelete
 ) {
 }

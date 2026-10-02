@@ -20,4 +20,7 @@ public interface ClubMemberRepository extends JpaRepository<ClubMember, Long> {
     List<ClubMember> findByUserUserIdAndClubJoinStatusNotOrderByRequestedAtDesc(Long userId, ClubJoinStatus clubJoinStatus);
     List<ClubMember> findByClubAndClubJoinStatusOrderByRequestedAtDesc(Club club, ClubJoinStatus clubJoinStatus);
     long countByUserUserIdAndRoleAndClubJoinStatus(Long userId, ClubRole role, ClubJoinStatus clubJoinStatus);
+
+    // 동아리 목록에 내 신청 상태를 표시할 때, 동아리마다 조회하지 않고 한 번에 가져온다.
+    List<ClubMember> findByUserUserId(Long userId);
 }
