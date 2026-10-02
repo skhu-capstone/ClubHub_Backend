@@ -44,9 +44,10 @@ public class ClubCollabController {
     public ResponseEntity<ApiResponse<ClubCollabPageResponse>> getCollabs(
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal Long userId
     ) {
-        ClubCollabPageResponse response = clubCollabService.getCollabs(keyword, page, size);
+        ClubCollabPageResponse response = clubCollabService.getCollabs(keyword, page, size, userId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(SuccessCode.CLUB_COLLAB_LIST_GET_SUCCESS, response)
@@ -56,9 +57,10 @@ public class ClubCollabController {
     @GetMapping("/{collabId}")
     @Operation(summary = "협업 모집글 상세 조회", description = "협업 모집글 ID로 상세 정보를 조회합니다.")
     public ResponseEntity<ApiResponse<ClubCollabResponse>> getCollab(
-            @PathVariable Long collabId
+            @PathVariable Long collabId,
+            @AuthenticationPrincipal Long userId
     ) {
-        ClubCollabResponse response = clubCollabService.getCollab(collabId);
+        ClubCollabResponse response = clubCollabService.getCollab(collabId, userId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(SuccessCode.CLUB_COLLAB_DETAIL_GET_SUCCESS, response)

@@ -124,7 +124,7 @@ public class PostController {
     @DeleteMapping("/posts/{postId}")
     @Operation(
             summary = "게시글 삭제",
-            description = "게시글 작성자 또는 STAFF/PRESIDENT 권한의 동아리 멤버가 게시글을 삭제할 수 있습니다."
+            description = "게시글 작성자 본인만 삭제할 수 있습니다."
     )
     public ResponseEntity<ApiResponse<Void>> deletePost(
             @PathVariable Long postId,

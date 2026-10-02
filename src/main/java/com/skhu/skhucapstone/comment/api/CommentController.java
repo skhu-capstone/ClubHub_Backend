@@ -62,9 +62,10 @@ public class CommentController {
             description = "특정 게시글에 작성된 댓글 목록을 조회합니다."
     )
     public ResponseEntity<ApiResponse<List<CommentResponse>>> getComments(
-            @PathVariable Long postId) {
+            @PathVariable Long postId,
+            @AuthenticationPrincipal Long userId) {
 
-        List<CommentResponse> response = commentService.getComments(postId);
+        List<CommentResponse> response = commentService.getComments(postId, userId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(SuccessCode.COMMENT_LIST_GET_SUCCESS, response)

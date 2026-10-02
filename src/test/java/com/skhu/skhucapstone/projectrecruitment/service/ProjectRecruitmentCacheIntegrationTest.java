@@ -71,7 +71,10 @@ class ProjectRecruitmentCacheIntegrationTest {
     @Autowired
     private CacheManager cacheManager;
 
-    private final User writer = User.builder().userId(1L).name("정다운").build();
+    // 모집글 작성자. 조회 시 권한 플래그 계산에도 쓰인다.
+    private static final Long OWNER_ID = 1L;
+
+    private final User writer = User.builder().userId(OWNER_ID).name("정다운").build();
 
     private ProjectRecruitment recruitment(Long id, String title) {
         return ProjectRecruitment.builder()
@@ -118,12 +121,39 @@ class ProjectRecruitmentCacheIntegrationTest {
     }
 
     @Test
+    @DisplayName("권한 플래그는 캐시되지 않고 요청한 사용자에 따라 매번 계산된다")
+    void permissionFlagsAreNotCached() {
+        when(projectRecruitmentRepository.findById(1L))
+                .thenReturn(Optional.of(recruitment(1L, "권한 확인")));
+
+        // 작성자가 먼저 조회해 캐시를 채운다
+        ProjectRecruitmentDetailRes byOwner = projectRecruitmentService.getRecruitment(1L, OWNER_ID);
+        awaitCached(1L);
+
+        // 같은 글을 다른 사용자와 비로그인 상태로 조회한다
+        ProjectRecruitmentDetailRes byOther = projectRecruitmentService.getRecruitment(1L, 999L);
+        ProjectRecruitmentDetailRes byAnonymous = projectRecruitmentService.getRecruitment(1L, null);
+
+        assertThat(byOwner.canUpdate()).isTrue();
+        assertThat(byOwner.canDelete()).isTrue();
+
+        // 캐시에 작성자의 권한이 저장돼 그대로 재사용되면 안 된다
+        assertThat(byOther.canUpdate()).isFalse();
+        assertThat(byOther.canDelete()).isFalse();
+        assertThat(byAnonymous.canUpdate()).isFalse();
+        assertThat(byAnonymous.canDelete()).isFalse();
+
+        // 캐시는 정상 동작해야 한다 (DB 조회는 한 번뿐)
+        verify(projectRecruitmentRepository, times(1)).findById(1L);
+    }
+
+    @Test
     @DisplayName("첫 번째 조회에서는 Repository가 호출된다")
     void firstReadHitsRepository() {
         when(projectRecruitmentRepository.findById(1L))
                 .thenReturn(Optional.of(recruitment(1L, "첫 조회")));
 
-        ProjectRecruitmentDetailRes res = projectRecruitmentService.getRecruitment(1L);
+        ProjectRecruitmentDetailRes res = projectRecruitmentService.getRecruitment(1L, OWNER_ID);
 
         assertThat(res.title()).isEqualTo("첫 조회");
         verify(projectRecruitmentRepository, times(1)).findById(1L);
@@ -135,9 +165,9 @@ class ProjectRecruitmentCacheIntegrationTest {
         when(projectRecruitmentRepository.findById(1L))
                 .thenReturn(Optional.of(recruitment(1L, "캐시 대상")));
 
-        projectRecruitmentService.getRecruitment(1L);
+        projectRecruitmentService.getRecruitment(1L, OWNER_ID);
         awaitCached(1L); // 캐시 저장이 Redis에 반영된 뒤 재조회
-        ProjectRecruitmentDetailRes second = projectRecruitmentService.getRecruitment(1L);
+        ProjectRecruitmentDetailRes second = projectRecruitmentService.getRecruitment(1L, OWNER_ID);
 
         assertThat(second.title()).isEqualTo("캐시 대상");
         assertThat(second.dDay()).isNotNull(); // dDay는 캐시 히트 시에도 계산되어 채워진다
@@ -150,11 +180,11 @@ class ProjectRecruitmentCacheIntegrationTest {
         ProjectRecruitment entity = recruitment(1L, "수정 전");
         when(projectRecruitmentRepository.findById(1L)).thenReturn(Optional.of(entity));
 
-        projectRecruitmentService.getRecruitment(1L); // 캐시 저장
+        projectRecruitmentService.getRecruitment(1L, OWNER_ID); // 캐시 저장
         awaitCached(1L); // 저장이 반영된 뒤 수정 (저장과 무효화의 순서 역전 방지)
         projectRecruitmentService.updateRecruitment(1L, writer.getUserId(), updateReq("수정 후"));
         awaitEvicted(1L); // 무효화가 Redis에 반영된 뒤 재조회
-        projectRecruitmentService.getRecruitment(1L); // 캐시가 지워졌으므로 다시 DB 조회
+        projectRecruitmentService.getRecruitment(1L, OWNER_ID); // 캐시가 지워졌으므로 다시 DB 조회
 
         // 첫 조회 1회 + 수정 시 1회 + 무효화 후 재조회 1회 = 3회
         verify(projectRecruitmentRepository, times(3)).findById(1L);
@@ -166,11 +196,11 @@ class ProjectRecruitmentCacheIntegrationTest {
         ProjectRecruitment entity = recruitment(1L, "수정 전");
         when(projectRecruitmentRepository.findById(1L)).thenReturn(Optional.of(entity));
 
-        ProjectRecruitmentDetailRes before = projectRecruitmentService.getRecruitment(1L);
+        ProjectRecruitmentDetailRes before = projectRecruitmentService.getRecruitment(1L, OWNER_ID);
         awaitCached(1L); // 저장이 반영된 뒤 수정 (저장과 무효화의 순서 역전 방지)
         projectRecruitmentService.updateRecruitment(1L, writer.getUserId(), updateReq("수정 후"));
         awaitEvicted(1L); // 무효화가 Redis에 반영된 뒤 재조회
-        ProjectRecruitmentDetailRes after = projectRecruitmentService.getRecruitment(1L);
+        ProjectRecruitmentDetailRes after = projectRecruitmentService.getRecruitment(1L, OWNER_ID);
 
         assertThat(before.title()).isEqualTo("수정 전");
         assertThat(after.title()).isEqualTo("수정 후");
@@ -181,11 +211,11 @@ class ProjectRecruitmentCacheIntegrationTest {
     void missingProjectIsNotCached() {
         when(projectRecruitmentRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> projectRecruitmentService.getRecruitment(999L))
+        assertThatThrownBy(() -> projectRecruitmentService.getRecruitment(999L, OWNER_ID))
                 .isInstanceOf(CustomException.class)
                 .extracting(e -> ((CustomException) e).getErrorCode())
                 .isEqualTo(ErrorCode.PROJECT_RECRUITMENT_NOT_FOUND);
-        assertThatThrownBy(() -> projectRecruitmentService.getRecruitment(999L))
+        assertThatThrownBy(() -> projectRecruitmentService.getRecruitment(999L, OWNER_ID))
                 .isInstanceOf(CustomException.class);
 
         // 예외가 캐싱되지 않고 매번 Repository를 조회해야 한다
@@ -200,10 +230,10 @@ class ProjectRecruitmentCacheIntegrationTest {
         when(projectRecruitmentRepository.findById(2L))
                 .thenReturn(Optional.of(recruitment(2L, "프로젝트2")));
 
-        projectRecruitmentService.getRecruitment(1L);
-        ProjectRecruitmentDetailRes res2 = projectRecruitmentService.getRecruitment(2L);
+        projectRecruitmentService.getRecruitment(1L, OWNER_ID);
+        ProjectRecruitmentDetailRes res2 = projectRecruitmentService.getRecruitment(2L, OWNER_ID);
         awaitCached(1L); // 캐시 저장이 Redis에 반영된 뒤 재조회
-        ProjectRecruitmentDetailRes res1Again = projectRecruitmentService.getRecruitment(1L);
+        ProjectRecruitmentDetailRes res1Again = projectRecruitmentService.getRecruitment(1L, OWNER_ID);
 
         assertThat(res1Again.title()).isEqualTo("프로젝트1");
         assertThat(res2.title()).isEqualTo("프로젝트2");
