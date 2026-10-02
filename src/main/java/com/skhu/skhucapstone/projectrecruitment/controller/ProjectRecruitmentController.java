@@ -60,10 +60,11 @@ public class ProjectRecruitmentController {
     @GetMapping("/{projectRecruitmentId}")
     @Operation(summary = "프로젝트 팀원 모집 상세 조회", description = "모집 글 ID로 상세 정보를 조회합니다.")
     public ResponseEntity<ApiResponse<ProjectRecruitmentDetailRes>> getRecruitment(
-            @PathVariable Long projectRecruitmentId
+            @PathVariable Long projectRecruitmentId,
+            @AuthenticationPrincipal Long userId
     ) {
         ProjectRecruitmentDetailRes response =
-                projectRecruitmentService.getRecruitment(projectRecruitmentId);
+                projectRecruitmentService.getRecruitment(projectRecruitmentId, userId);
 
         return ResponseEntity.ok(
                 ApiResponse.success(SuccessCode.PROJECT_RECRUITMENT_FETCH_SUCCESS, response)

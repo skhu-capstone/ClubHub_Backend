@@ -55,6 +55,8 @@ public class CommentService {
                 .content(savedComment.getContent())
                 .writerName(savedComment.getUser().getName())
                 .createdAt(savedComment.getCreatedAt())
+                // 방금 작성한 본인의 댓글이므로 항상 삭제할 수 있다.
+                .canDelete(true)
                 .build();
     }
 
@@ -71,7 +73,7 @@ public class CommentService {
         commentRepository.delete(comment);
     }
 
-    public List<CommentResponse> getComments(Long postId) {
+    public List<CommentResponse> getComments(Long postId, Long userId) {
 
         Post post = postRepository.findById(postId)
                 .orElseThrow(()  -> new CustomException(ErrorCode.POST_NOT_FOUND));
@@ -83,6 +85,9 @@ public class CommentService {
                         .content(comment.getContent())
                         .writerName(comment.getUser().getName())
                         .createdAt(comment.getCreatedAt())
+                        // 비로그인 조회도 가능하므로 userId가 없으면 삭제 불가로 둔다.
+                        .canDelete(userId != null
+                                && comment.getUser().getUserId().equals(userId))
                         .build())
                 .toList();
     }

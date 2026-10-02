@@ -73,13 +73,14 @@ public class ClubCollabService {
 
         ClubCollaboration savedCollab = clubCollabRepository.save(clubCollaboration);
 
-        return toCollabResponse(savedCollab);
+        return toCollabResponse(savedCollab, userId);
     }
 
     public ClubCollabPageResponse getCollabs(
             String keyword,
             int page,
-            int size
+            int size,
+            Long userId
     ) {
         Pageable pageable = PageRequest.of(page, size);
 
@@ -93,7 +94,7 @@ public class ClubCollabService {
         return ClubCollabPageResponse.builder()
                 .content(collabs.getContent()
                         .stream()
-                        .map(this::toCollabResponse)
+                        .map(collab -> toCollabResponse(collab, userId))
                         .toList())
                 .page(collabs.getNumber())
                 .size(collabs.getSize())
@@ -103,11 +104,11 @@ public class ClubCollabService {
                 .build();
     }
 
-    public ClubCollabResponse getCollab(Long collabId) {
+    public ClubCollabResponse getCollab(Long collabId, Long userId) {
         ClubCollaboration collab = clubCollabRepository.findById(collabId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CLUB_COLLAB_NOT_FOUND));
 
-        return toCollabResponse(collab);
+        return toCollabResponse(collab, userId);
     }
 
     @Transactional
@@ -132,7 +133,7 @@ public class ClubCollabService {
                 request.imageUrl()
         );
 
-        return toCollabResponse(collab);
+        return toCollabResponse(collab, userId);
     }
 
     @Transactional
@@ -210,7 +211,11 @@ public class ClubCollabService {
         }
     }
 
-    private ClubCollabResponse toCollabResponse(ClubCollaboration collab) {
+    private ClubCollabResponse toCollabResponse(ClubCollaboration collab, Long userId) {
+        // 수정·삭제 모두 작성자 본인만 가능하다.
+        boolean isWriter = userId != null
+                && collab.getUser().getUserId().equals(userId);
+
         return ClubCollabResponse.builder()
                 .collabId(collab.getCollabId())
                 .clubId(collab.getClub().getId())
@@ -224,6 +229,8 @@ public class ClubCollabService {
                 .dDayText(calculateDday(collab.getDeadline()))
                 .writerName(collab.getUser().getName())
                 .createdAt(collab.getCreatedAt())
+                .canUpdate(isWriter)
+                .canDelete(isWriter)
                 .build();
     }
 

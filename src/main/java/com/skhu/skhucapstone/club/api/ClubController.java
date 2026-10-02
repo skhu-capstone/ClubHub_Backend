@@ -42,15 +42,17 @@ public class ClubController {
     @GetMapping
     @Operation(
             summary = "동아리 목록 및 검색",
-            description = "동아리명과 카테고리를 기준으로 동아리를 검색하고 페이지 단위로 조회합니다."
+            description = "동아리명과 카테고리를 기준으로 동아리를 검색하고 페이지 단위로 조회합니다. "
+                    + "로그인한 경우 각 동아리에 대한 내 가입 상태(myJoinStatus)와 신청 가능 여부(canApply)를 함께 반환합니다."
     )
     public ResponseEntity<ApiResponse<ClubPageResponse>> getClubs(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String category,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal Long userId) {
 
-        ClubPageResponse response = clubService.getClubs(keyword, category, page, size);
+        ClubPageResponse response = clubService.getClubs(keyword, category, page, size, userId);
 
         return ResponseEntity.ok(ApiResponse.success(SuccessCode.CLUB_LIST_GET_SUCCESS, response));
     }

@@ -24,6 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -79,7 +82,8 @@ public class ClubService {
             String keyword,
             String category,
             int page,
-            int size
+            int size,
+            Long userId
     ) {
         validateSearchCondition(page, size);
 
@@ -99,16 +103,35 @@ public class ClubService {
                 pageable
         );
 
+        // 동아리마다 조회하면 목록 크기만큼 쿼리가 늘어나므로, 내 가입 내역을 한 번에 가져와 맞춘다.
+        Map<Long, ClubJoinStatus> myJoinStatuses = findMyJoinStatuses(userId);
+
         return ClubPageResponse.builder()
                 .content(clubs.getContent()
                         .stream()
-                        .map(ClubListResponse::from)
+                        .map(club -> ClubListResponse.of(club, myJoinStatuses.get(club.getId())))
                         .toList())
                 .page(clubs.getNumber())
                 .size(clubs.getSize())
                 .totalElements(clubs.getTotalElements())
                 .totalPages(clubs.getTotalPages())
                 .build();
+    }
+
+    // 로그인한 사용자의 동아리별 가입 상태를 동아리 ID 기준으로 묶어 반환한다.
+    private Map<Long, ClubJoinStatus> findMyJoinStatuses(Long userId) {
+        if (userId == null) {
+            return Map.of();
+        }
+
+        return clubMemberRepository.findByUserUserId(userId)
+                .stream()
+                .collect(Collectors.toMap(
+                        clubMember -> clubMember.getClub().getId(),
+                        ClubMember::getClubJoinStatus,
+                        // 같은 동아리에 이력이 여러 건이면 마지막 값을 사용한다.
+                        (previous, latest) -> latest
+                ));
     }
 
     public ClubResponse getClub(Long clubId) {

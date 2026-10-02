@@ -201,28 +201,7 @@ public class PostService {
                 .orElseThrow(() ->
                         new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() ->
-                        new CustomException(ErrorCode.USER_NOT_FOUND));
-
-        boolean isWriter =
-                post.getUser().getUserId().equals(userId);
-
-        ClubMember clubMember =
-                clubMemberRepository.findByClubAndUser(
-                                post.getClub(),
-                                user
-                        )
-                        .orElseThrow(() ->
-                                new CustomException(
-                                        ErrorCode.POST_DELETE_FORBIDDEN
-                                ));
-
-        boolean isManager =
-                clubMember.getRole() == ClubRole.STAFF
-                        || clubMember.getRole() == ClubRole.PRESIDENT;
-
-        if (!isWriter && !isManager) {
+        if (!post.getUser().getUserId().equals(userId)) {
             throw new CustomException(
                     ErrorCode.POST_DELETE_FORBIDDEN
             );
@@ -322,8 +301,12 @@ public class PostService {
         List<CommentResponse> comments =
                 commentRepository.findByPostOrderByCreatedAtAsc(post)
                         .stream()
-                        .map(this::toCommentResponse)
+                        .map(comment -> toCommentResponse(comment, userId))
                         .toList();
+
+        boolean isWriter =
+                userId != null
+                        && post.getUser().getUserId().equals(userId);
 
         return PostResponse.builder()
                 .clubName(post.getClub().getClubName())
@@ -338,15 +321,20 @@ public class PostService {
                 .liked(liked)
                 .comments(comments)
                 .createdAt(post.getCreatedAt())
+                // 수정·삭제 모두 작성자 본인만 가능하다.
+                .canUpdate(isWriter)
+                .canDelete(isWriter)
                 .build();
     }
 
-    private CommentResponse toCommentResponse(Comment comment) {
+    private CommentResponse toCommentResponse(Comment comment, Long userId) {
         return CommentResponse.builder()
                 .commentId(comment.getCommentId())
                 .content(comment.getContent())
                 .writerName(comment.getUser().getName())
                 .createdAt(comment.getCreatedAt())
+                .canDelete(userId != null
+                        && comment.getUser().getUserId().equals(userId))
                 .build();
     }
 

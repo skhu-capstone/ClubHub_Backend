@@ -35,4 +35,10 @@ public class PostResponse {
     private List<CommentResponse> comments;
 
     private LocalDateTime createdAt;
+
+    // 요청한 사용자가 이 게시글을 수정할 수 있는지 (작성자 본인만)
+    private boolean canUpdate;
+
+    // 요청한 사용자가 이 게시글을 삭제할 수 있는지 (작성자 본인만)
+    private boolean canDelete;
 }
