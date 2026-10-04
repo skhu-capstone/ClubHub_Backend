@@ -98,6 +98,7 @@ public class MainService {
                 .imageUrl(recruitment.getImageUrl())
                 .deadline(recruitment.getDeadline())
                 .dDay(recruitment.getDDay())
+                .createdAt(recruitment.getCreatedAt())
                 .build();
     }
 
@@ -110,6 +111,7 @@ public class MainService {
                 .content(collab.getContent())
                 .dDayText(collab.getDDayText())
                 .clubName(collab.getClubName())
+                .createdAt(collab.getCreatedAt())
                 .build();
     }
 
