@@ -87,6 +87,7 @@ public enum SuccessCode {
 
     // 마이페이지
     MYPAGE_GET_SUCCESS(HttpStatus.OK, "MYPAGE_GET_SUCCESS", "마이페이지 조회가 완료되었습니다."),
+    MYPAGE_NAME_UPDATE_SUCCESS(HttpStatus.OK, "MYPAGE_NAME_UPDATE_SUCCESS", "닉네임 수정이 완료되었습니다."),
 
     // 채팅
     CHAT_ROOM_CREATE_SUCCESS(HttpStatus.OK, "CHAT_ROOM_CREATE_SUCCESS", "채팅방이 생성되었습니다."),

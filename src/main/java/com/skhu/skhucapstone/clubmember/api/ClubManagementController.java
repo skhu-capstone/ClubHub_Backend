@@ -119,6 +119,11 @@ public class ClubManagementController {
             @PathVariable Long targetUserId,
             @AuthenticationPrincipal Long managerUserId) {
 
+        System.out.println("=== DELETE MEMBER CONTROLLER 진입 ===");
+        System.out.println("clubId = " + clubId);
+        System.out.println("targetUserId = " + targetUserId);
+        System.out.println("managerUserId = " + managerUserId);
+
         ClubMemberRemoveResponse response =
                 clubManagementService.removeMember(
                         clubId,

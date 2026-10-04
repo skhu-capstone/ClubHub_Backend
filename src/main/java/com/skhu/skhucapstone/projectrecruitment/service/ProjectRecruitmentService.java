@@ -223,6 +223,7 @@ public class ProjectRecruitmentService {
                 .imageUrl(recruitment.getImageUrl())
                 .deadline(recruitment.getDeadline())
                 .dDay(calculateDday(recruitment.getDeadline()))
+                .createdAt(recruitment.getCreatedAt())
                 .build();
     }
 
