@@ -7,8 +7,11 @@ import com.skhu.skhucapstone.coffeechat.dto.res.CoffeeChatProfileVisibilityRes;
 import com.skhu.skhucapstone.coffeechat.service.CoffeeChatService;
 import com.skhu.skhucapstone.common.exception.SuccessCode;
 import com.skhu.skhucapstone.common.response.ApiResponse;
-import com.skhu.skhucapstone.mypage.dto.MypageRes;
+import com.skhu.skhucapstone.mypage.dto.res.MypageRes;
 import com.skhu.skhucapstone.mypage.service.MypageService;
+import com.skhu.skhucapstone.mypage.dto.req.MypageNameUpdateReq;
+import com.skhu.skhucapstone.mypage.dto.res.MypageNameUpdateRes;
+import jakarta.validation.Valid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -49,5 +52,19 @@ public class MypageController {
             @AuthenticationPrincipal Long userId) {
         CoffeeChatProfileVisibilityRes res = coffeeChatService.updateVisibility(userId, req);
         return ResponseEntity.ok(ApiResponse.success(SuccessCode.COFFEECHAT_PROFILE_VISIBILITY_UPDATE_SUCCESS, res));
+    }
+
+    @PatchMapping("/name")
+    @Operation(
+            summary = "닉네임 수정",
+            description = "로그인한 사용자의 닉네임을 수정합니다."
+    )
+    public ResponseEntity<ApiResponse<MypageNameUpdateRes>> updateName(
+            @AuthenticationPrincipal Long userId,
+            @Valid @RequestBody MypageNameUpdateReq req
+    ) {
+        MypageNameUpdateRes res = mypageService.updateName(userId, req);
+
+        return ResponseEntity.ok(ApiResponse.success(SuccessCode.MYPAGE_NAME_UPDATE_SUCCESS, res));
     }
 }
