@@ -176,9 +176,7 @@ public class PostService {
                 .orElseThrow(() ->
                         new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        if (!post.getUser().getUserId().equals(userId)) {
-            throw new CustomException(ErrorCode.POST_UPDATE_FORBIDDEN);
-        }
+        validateWriter(post, userId, ErrorCode.POST_UPDATE_FORBIDDEN);
 
         post.updatePost(
                 request.title(),
@@ -186,8 +184,14 @@ public class PostService {
                 request.postType()
         );
 
+        // 수정 후 목록에서 빠진 이미지는 저장소에도 남을 이유가 없으므로 같이 지운다.
+        List<String> removedImageUrls =
+                findRemovedImageUrls(post, request.imageUrls());
+
         postImageRepository.deleteByPost(post);
         savePostImages(post, request.imageUrls());
+
+        removedImageUrls.forEach(imageUploadService::delete);
 
         return toPostResponse(post, userId);
     }
@@ -201,34 +205,34 @@ public class PostService {
                 .orElseThrow(() ->
                         new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        if (!post.getUser().getUserId().equals(userId)) {
-            throw new CustomException(
-                    ErrorCode.POST_DELETE_FORBIDDEN
-            );
-        }
+        validateWriter(post, userId, ErrorCode.POST_DELETE_FORBIDDEN);
+
+        List<PostImage> images =
+                postImageRepository.findByPostOrderByImageOrderAsc(post);
 
         postImageRepository.deleteByPost(post);
         postRepository.delete(post);
+
+        // 게시글이 사라지면 이미지도 참조할 곳이 없으므로 저장소에서 지운다.
+        images.forEach(postImage ->
+                imageUploadService.delete(postImage.getImageUrl()));
     }
 
     @Transactional
     public String uploadPostImage(
             Long postId,
+            Long userId,
             MultipartFile file
     ) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() ->
                         new CustomException(ErrorCode.POST_NOT_FOUND));
 
-        List<PostImage> existing =
-                postImageRepository.findByPostOrderByImageOrderAsc(post);
+        validateWriter(post, userId, ErrorCode.POST_UPDATE_FORBIDDEN);
 
-        existing.forEach(postImage ->
-                imageUploadService.delete(
-                        postImage.getImageUrl()
-                ));
-
-        postImageRepository.deleteByPost(post);
+        // 여러 장을 연속으로 올리므로 기존 이미지를 지우지 않고 뒤에 덧붙인다.
+        int nextOrder =
+                postImageRepository.findByPostOrderByImageOrderAsc(post).size();
 
         String imageUrl =
                 imageUploadService.upload(file, "post");
@@ -236,12 +240,37 @@ public class PostService {
         PostImage postImage = PostImage.builder()
                 .post(post)
                 .imageUrl(imageUrl)
-                .imageOrder(0)
+                .imageOrder(nextOrder)
                 .build();
 
         postImageRepository.save(postImage);
 
         return imageUrl;
+    }
+
+    private void validateWriter(
+            Post post,
+            Long userId,
+            ErrorCode errorCode
+    ) {
+        if (userId == null || !post.getUser().getUserId().equals(userId)) {
+            throw new CustomException(errorCode);
+        }
+    }
+
+    // 수정 요청에 포함되지 않아 더 이상 쓰이지 않게 되는 이미지 URL을 찾는다.
+    private List<String> findRemovedImageUrls(
+            Post post,
+            List<String> newImageUrls
+    ) {
+        List<String> keptImageUrls =
+                newImageUrls == null ? List.of() : newImageUrls;
+
+        return postImageRepository.findByPostOrderByImageOrderAsc(post)
+                .stream()
+                .map(PostImage::getImageUrl)
+                .filter(imageUrl -> !keptImageUrls.contains(imageUrl))
+                .toList();
     }
 
     private void savePostImages(

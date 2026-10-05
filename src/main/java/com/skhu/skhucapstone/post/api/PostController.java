@@ -110,13 +110,16 @@ public class PostController {
     @PostMapping(value = "/posts/{postId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
             summary = "게시글 이미지 업로드",
-            description = "게시글 이미지를 업로드합니다."
+            description = "게시글 작성자 본인만 이미지를 업로드할 수 있습니다. "
+                    + "여러 장을 연속으로 호출하면 기존 이미지 뒤에 순서대로 추가되며, "
+                    + "업로드된 이미지 URL을 반환합니다."
     )
     public ResponseEntity<ApiResponse<String>> uploadPostImage(
             @PathVariable Long postId,
+            @AuthenticationPrincipal Long userId,
             @RequestPart MultipartFile file
     ) {
-        String imageUrl = postService.uploadPostImage(postId, file);
+        String imageUrl = postService.uploadPostImage(postId, userId, file);
 
         return ResponseEntity.ok(ApiResponse.success(SuccessCode.POST_IMAGE_UPLOAD_SUCCESS, imageUrl));
     }
