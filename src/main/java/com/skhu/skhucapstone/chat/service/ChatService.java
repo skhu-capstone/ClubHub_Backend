@@ -8,8 +8,14 @@ import com.skhu.skhucapstone.chat.entity.ChatMessage;
 import com.skhu.skhucapstone.chat.entity.ChatRoom;
 import com.skhu.skhucapstone.chat.repository.ChatMessageRepository;
 import com.skhu.skhucapstone.chat.repository.ChatRoomRepository;
+import com.skhu.skhucapstone.chat.dto.req.ChatRoomSource;
 import com.skhu.skhucapstone.common.exception.CustomException;
 import com.skhu.skhucapstone.common.exception.ErrorCode;
+import com.skhu.skhucapstone.notification.application.NotificationService;
+import com.skhu.skhucapstone.notification.domain.NotificationTargetType;
+import com.skhu.skhucapstone.notification.domain.NotificationType;
+import com.skhu.skhucapstone.projectrecruitment.entity.ProjectRecruitment;
+import com.skhu.skhucapstone.projectrecruitment.repository.ProjectRecruitmentRepository;
 import com.skhu.skhucapstone.user.entity.User;
 import com.skhu.skhucapstone.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +32,8 @@ public class ChatService {
     private final ChatRoomRepository chatRoomRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final ProjectRecruitmentRepository projectRecruitmentRepository;
 
     // 채팅방 생성 or 반환 (이미 존재하면 기존 채팅방 반환)
     @Transactional
@@ -41,7 +49,7 @@ public class ChatService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         // 이미 존재하는 채팅방이 있으면 isNew=false로 반환
-        return chatRoomRepository.findByUsers(user, targetUser)
+        ChatRoomRes room = chatRoomRepository.findByUsers(user, targetUser)
                 .map(existing -> ChatRoomRes.of(existing, false))
                 .orElseGet(() -> {
                     // 없으면 새로 생성 후 isNew=true로 반환
@@ -53,6 +61,59 @@ public class ChatService {
                     );
                     return ChatRoomRes.of(newRoom, true);
                 });
+
+        notifyChatRequest(user, targetUser, req, room);
+
+        return room;
+    }
+
+    // 상대방에게 "누가 말을 걸었다"는 알림을 보낸다.
+    // source를 담아 보낸 요청은 지원 버튼을 누른 것이므로 매번 알리고,
+    // source가 없는 요청은 채팅 목록에서 다시 들어온 경우일 수 있어 새 방일 때만 알린다.
+    private void notifyChatRequest(
+            User sender,
+            User receiver,
+            ChatRoomCreateReq req,
+            ChatRoomRes room
+    ) {
+        ChatRoomSource source = req.getSource();
+
+        if (source == null && !room.getIsNew()) {
+            return;
+        }
+
+        NotificationType type = source == ChatRoomSource.PROJECT_RECRUITMENT
+                ? NotificationType.PROJECT_RECRUITMENT_APPLY
+                : NotificationType.COFFEE_CHAT_REQUEST;
+
+        notificationService.notify(
+                receiver,
+                sender,
+                type,
+                buildChatRequestMessage(sender, source, req.getSourceId()),
+                NotificationTargetType.CHAT_ROOM,
+                room.getChatRoomId()
+        );
+    }
+
+    private String buildChatRequestMessage(
+            User sender,
+            ChatRoomSource source,
+            Long sourceId
+    ) {
+        if (source != ChatRoomSource.PROJECT_RECRUITMENT) {
+            return sender.getName() + "님이 커피챗을 신청했습니다.";
+        }
+
+        // 글 제목까지 알려주면 어떤 모집 건인지 바로 알 수 있다.
+        String title = sourceId == null ? null
+                : projectRecruitmentRepository.findById(sourceId)
+                        .map(ProjectRecruitment::getTitle)
+                        .orElse(null);
+
+        return title == null
+                ? sender.getName() + "님이 프로젝트 팀원 모집에 지원했습니다."
+                : sender.getName() + "님이 프로젝트 '" + title + "'에 지원했습니다.";
     }
     // 협업 모집글 문의하기 등 내부 서비스에서 targetUserId를 바로 알고 있을 때 사용하는 채팅방 생성/반환 메서드
     // 기존 createOrGetChatRoom(Long userId, ChatRoomCreateReq req)는 컨트롤러 요청용으로 유지하고,

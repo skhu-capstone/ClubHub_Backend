@@ -95,7 +95,13 @@ public enum SuccessCode {
     CHAT_ROOM_LIST_FETCH_SUCCESS(HttpStatus.OK, "CHAT_ROOM_LIST_FETCH_SUCCESS", "채팅방 목록 조회에 성공했습니다."),
     CHAT_MESSAGE_SEND_SUCCESS(HttpStatus.OK, "CHAT_MESSAGE_SEND_SUCCESS", "메시지 전송에 성공했습니다."),
     CHAT_MESSAGE_LIST_FETCH_SUCCESS(HttpStatus.OK, "CHAT_MESSAGE_LIST_FETCH_SUCCESS", "채팅 메시지 목록 조회에 성공했습니다."),
-    CHAT_MESSAGE_READ_SUCCESS(HttpStatus.OK, "CHAT_MESSAGE_READ_SUCCESS", "메시지를 읽음 처리했습니다.");
+    CHAT_MESSAGE_READ_SUCCESS(HttpStatus.OK, "CHAT_MESSAGE_READ_SUCCESS", "메시지를 읽음 처리했습니다."),
+
+    // 알림
+    NOTIFICATION_LIST_GET_SUCCESS(HttpStatus.OK, "NOTIFICATION_LIST_GET_SUCCESS", "알림 목록 조회에 성공했습니다."),
+    NOTIFICATION_UNREAD_COUNT_GET_SUCCESS(HttpStatus.OK, "NOTIFICATION_UNREAD_COUNT_GET_SUCCESS", "안 읽은 알림 개수 조회에 성공했습니다."),
+    NOTIFICATION_READ_SUCCESS(HttpStatus.OK, "NOTIFICATION_READ_SUCCESS", "알림을 읽음 처리했습니다."),
+    NOTIFICATION_READ_ALL_SUCCESS(HttpStatus.OK, "NOTIFICATION_READ_ALL_SUCCESS", "모든 알림을 읽음 처리했습니다.");
 
     private final HttpStatus status;
     private final String code;
