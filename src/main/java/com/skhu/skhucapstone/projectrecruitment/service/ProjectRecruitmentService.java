@@ -190,9 +190,14 @@ public class ProjectRecruitmentService {
     // 이미지 업로드도 imageUrl을 변경하므로 캐시를 무효화해야 한다.
     @CacheEvict(cacheNames = CacheConfig.PROJECT_RECRUITMENT_CACHE, key = "#projectRecruitmentId")
     @Transactional
-    public String uploadRecruitmentImage(Long projectRecruitmentId, MultipartFile file) {
-        ProjectRecruitment recruitment = projectRecruitmentRepository.findById(projectRecruitmentId)
-                .orElseThrow(() -> new CustomException(ErrorCode.PROJECT_RECRUITMENT_NOT_FOUND));
+    public String uploadRecruitmentImage(
+            Long projectRecruitmentId,
+            Long userId,
+            MultipartFile file
+    ) {
+        ProjectRecruitment recruitment = findRecruitment(projectRecruitmentId);
+
+        validateWriter(recruitment, userId, ErrorCode.PROJECT_RECRUITMENT_UPDATE_ACCESS_DENIED);
 
         if (recruitment.getImageUrl() != null) {
             imageUploadService.delete(recruitment.getImageUrl());
@@ -200,6 +205,7 @@ public class ProjectRecruitmentService {
 
         String imageUrl = imageUploadService.upload(file, "recruitment");
         recruitment.updateImage(imageUrl);
+
         return imageUrl;
     }
 
