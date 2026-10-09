@@ -15,6 +15,7 @@ public enum ErrorCode {
 
     // 학교 이메일
     INVALID_SCHOOL_EMAIL(HttpStatus.FORBIDDEN, "INVALID_SCHOOL_EMAIL", "학교 이메일 형식이 아닙니다."),
+    SCHOOL_EMAIL_VERIFICATION_REQUIRED(HttpStatus.FORBIDDEN, "SCHOOL_EMAIL_VERIFICATION_REQUIRED", "학교 이메일 인증 후 서비스를 이용할 수 있습니다."),
     ALREADY_VERIFIED_EMAIL(HttpStatus.CONFLICT, "ALREADY_VERIFIED_EMAIL", "이미 인증된 학교 이메일입니다."),
     EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL_SEND_FAILED", "인증번호 발송에 실패했습니다."),
 

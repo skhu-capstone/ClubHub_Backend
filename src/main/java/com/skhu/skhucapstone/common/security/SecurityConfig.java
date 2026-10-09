@@ -24,6 +24,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SchoolEmailAuthorizationManager schoolEmailAuthorizationManager;
+    private final SchoolEmailAccessDeniedHandler schoolEmailAccessDeniedHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -34,11 +36,15 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 구글 로그인
+                        .requestMatchers("/api/auth/google/login").permitAll()
+
+                        // 학교 이메일 인증 관련 API
+                        .requestMatchers("/api/auth/email/**").authenticated()
+
+                        // 비로그인 사용자도 조회 가능
                         .requestMatchers(HttpMethod.GET, "/api/main").permitAll()
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/chat/**",
-                                "/api/users/me/**"
-                        ).authenticated()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/coffeechat/profiles",
                                 "/api/coffeechat/profiles/**",
@@ -48,8 +54,15 @@ public class SecurityConfig {
                                 "/api/club-collaborations/**",
                                 "/api/project-recruitments/**"
                         ).permitAll()
+
+                        // 학교 이메일 인증 후 이용 가능한 개인 기능
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/chat/**",
+                                "/api/users/me/**"
+                        ).access(schoolEmailAuthorizationManager)
+
+                        // 기타 공개 경로
                         .requestMatchers(
-                                "/api/auth/google/login",
                                 "/error",
                                 "/uploads/**",
                                 "/swagger-ui/**",
@@ -59,7 +72,11 @@ public class SecurityConfig {
                                 "/ws/**",
                                 "/actuator/**"
                         ).permitAll()
-                        .anyRequest().authenticated())
+
+                        // 나머지 API는 학교 이메일 인증 필수
+                        .anyRequest().access(schoolEmailAuthorizationManager))
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler(schoolEmailAccessDeniedHandler))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
