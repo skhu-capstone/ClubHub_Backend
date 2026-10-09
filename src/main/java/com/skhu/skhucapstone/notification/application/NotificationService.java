@@ -132,12 +132,22 @@ public class NotificationService {
         return Notification.builder()
                 .receiver(receiver)
                 .type(type)
-                .message(message)
+                .message(truncate(message))
                 .targetType(targetType)
                 .targetId(targetId)
                 .isRead(false)
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
+
+    // 글 제목이 아주 긴 경우에도 저장에 실패하지 않도록 길이를 맞춘다.
+    // 알림 하나 때문에 정작 중요한 댓글·지원 요청이 실패해서는 안 된다.
+    private String truncate(String message) {
+        if (message.length() <= Notification.MESSAGE_MAX_LENGTH) {
+            return message;
+        }
+
+        return message.substring(0, Notification.MESSAGE_MAX_LENGTH - 1) + "…";
     }
 
     private boolean isSamePerson(User receiver, User actor) {
