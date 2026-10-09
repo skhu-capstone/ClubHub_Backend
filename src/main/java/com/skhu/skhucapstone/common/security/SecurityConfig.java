@@ -24,6 +24,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final SchoolEmailAuthorizationManager schoolEmailAuthorizationManager;
+    private final SchoolEmailAccessDeniedHandler schoolEmailAccessDeniedHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -34,22 +36,48 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
+                        // 구글 로그인
+                        .requestMatchers("/api/auth/google/login").permitAll()
+
+                        // 학교 이메일 인증 관련 API (로그인 필수)
+                        .requestMatchers("/api/auth/email/**").authenticated()
+
+                        // 메인페이지는 누구나 조회 가능
                         .requestMatchers(HttpMethod.GET, "/api/main").permitAll()
+
+                        // 커피챗 조회는 학교 이메일 인증 필수
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/coffeechat/profiles",
+                                "/api/coffeechat/profiles/**"
+                        ).access(schoolEmailAuthorizationManager)
+
+                        // 동아리 부원 명단은 학교 이메일 인증 필수
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/clubs/{clubId}/members"
+                        ).access(schoolEmailAuthorizationManager)
+
+                        // 비로그인 사용자도 조회 가능한 공개 API
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/clubs",
+                                "/api/clubs/{clubId}",
+                                "/api/clubs/{clubId}/posts",
+                                "/api/posts",
+                                "/api/posts/{postId}",
+                                "/api/club-collaborations",
+                                "/api/club-collaborations/{collabId}",
+                                "/api/project-recruitments",
+                                "/api/project-recruitments/{projectRecruitmentId}"
+                        ).permitAll()
+
+                        // 학교 이메일 인증 후 이용 가능한 개인 기능
                         .requestMatchers(HttpMethod.GET,
                                 "/api/chat/**",
                                 "/api/users/me/**"
-                        ).authenticated()
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/coffeechat/profiles",
-                                "/api/coffeechat/profiles/**",
-                                "/api/posts",
-                                "/api/posts/**",
-                                "/api/clubs/**",
-                                "/api/club-collaborations/**",
-                                "/api/project-recruitments/**"
-                        ).permitAll()
+                        ).access(schoolEmailAuthorizationManager)
+
+                        // 기타 공개 경로
                         .requestMatchers(
-                                "/api/auth/google/login",
                                 "/error",
                                 "/uploads/**",
                                 "/swagger-ui/**",
@@ -59,7 +87,11 @@ public class SecurityConfig {
                                 "/ws/**",
                                 "/actuator/**"
                         ).permitAll()
-                        .anyRequest().authenticated())
+
+                        // 나머지 API는 학교 이메일 인증 필수
+                        .anyRequest().access(schoolEmailAuthorizationManager))
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler(schoolEmailAccessDeniedHandler))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -80,6 +112,7 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 
