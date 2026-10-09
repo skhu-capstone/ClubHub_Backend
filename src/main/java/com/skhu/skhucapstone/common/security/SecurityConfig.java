@@ -43,11 +43,17 @@ public class SecurityConfig {
                         // 학교 이메일 인증 관련 API
                         .requestMatchers("/api/auth/email/**").authenticated()
 
-                        // 비로그인 사용자도 조회 가능
+                        // 메인페이지는 누구나 조회 가능
                         .requestMatchers(HttpMethod.GET, "/api/main").permitAll()
+
+                        // 커피챗 조회는 학교 이메일 인증 필수
                         .requestMatchers(HttpMethod.GET,
                                 "/api/coffeechat/profiles",
-                                "/api/coffeechat/profiles/**",
+                                "/api/coffeechat/profiles/**"
+                        ).access(schoolEmailAuthorizationManager)
+
+                        // 비로그인 사용자도 조회 가능
+                        .requestMatchers(HttpMethod.GET,
                                 "/api/posts",
                                 "/api/posts/**",
                                 "/api/clubs/**",
