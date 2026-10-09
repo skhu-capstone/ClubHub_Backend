@@ -15,6 +15,9 @@ import com.skhu.skhucapstone.clubmember.domain.ClubRole;
 import com.skhu.skhucapstone.clubmember.domain.repository.ClubMemberRepository;
 import com.skhu.skhucapstone.common.exception.CustomException;
 import com.skhu.skhucapstone.common.exception.ErrorCode;
+import com.skhu.skhucapstone.notification.application.NotificationService;
+import com.skhu.skhucapstone.notification.domain.NotificationTargetType;
+import com.skhu.skhucapstone.notification.domain.NotificationType;
 import com.skhu.skhucapstone.user.entity.User;
 import com.skhu.skhucapstone.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +34,16 @@ public class ClubManagementService {
     private final ClubRepository clubRepository;
     private final ClubMemberRepository clubMemberRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
+
+    // 알림 문구에 쓸 역할 이름.
+    private String describeRole(ClubRole role) {
+        return switch (role) {
+            case PRESIDENT -> "대표";
+            case STAFF -> "운영진";
+            case MEMBER -> "일반 회원";
+        };
+    }
 
     public List<ClubJoinApplicantResponse> getJoinApplicants(Long clubId, Long userId) {
         Club club = findClub(clubId);
@@ -72,6 +85,15 @@ public class ClubManagementService {
         validatePendingApplicant(applicantMember);
         applicantMember.approveJoin();
 
+        notificationService.notify(
+                applicant,
+                manager,
+                NotificationType.CLUB_JOIN_APPROVED,
+                club.getClubName() + " 동아리 가입이 승인되었습니다.",
+                NotificationTargetType.CLUB,
+                club.getId()
+        );
+
         return toJoinProcessResponse(applicantMember);
     }
 
@@ -91,6 +113,15 @@ public class ClubManagementService {
 
         validatePendingApplicant(applicantMember);
         applicantMember.rejectJoin();
+
+        notificationService.notify(
+                applicant,
+                manager,
+                NotificationType.CLUB_JOIN_REJECTED,
+                club.getClubName() + " 동아리 가입이 거절되었습니다. 다시 신청할 수 있습니다.",
+                NotificationTargetType.CLUB,
+                club.getId()
+        );
 
         return toJoinProcessResponse(applicantMember);
     }
@@ -113,6 +144,16 @@ public class ClubManagementService {
 
         validateRoleUpdate(targetMember, request.role());
         targetMember.changeRole(request.role());
+
+        notificationService.notify(
+                targetUser,
+                manager,
+                NotificationType.CLUB_ROLE_CHANGED,
+                club.getClubName() + " 동아리에서 회원님의 역할이 "
+                        + describeRole(targetMember.getRole()) + "(으)로 변경되었습니다.",
+                NotificationTargetType.CLUB,
+                club.getId()
+        );
 
         return ClubMemberRoleUpdateResponse.builder()
                 .clubId(club.getId())
@@ -147,6 +188,15 @@ public class ClubManagementService {
         currentPresidentMember.changeRole(ClubRole.STAFF);
         newPresidentMember.changeRole(ClubRole.PRESIDENT);
 
+        notificationService.notify(
+                newPresident,
+                currentPresident,
+                NotificationType.CLUB_ROLE_CHANGED,
+                club.getClubName() + " 동아리의 대표로 임명되었습니다.",
+                NotificationTargetType.CLUB,
+                club.getId()
+        );
+
         return ClubPresidentTransferResponse.builder()
                 .clubId(club.getId())
                 .previousPresidentUserId(currentPresident.getUserId())
@@ -177,6 +227,15 @@ public class ClubManagementService {
 
         validateMemberRemoveTarget(targetMember);
         targetMember.removeFromClub();
+
+        notificationService.notify(
+                targetUser,
+                manager,
+                NotificationType.CLUB_MEMBER_EXPELLED,
+                club.getClubName() + " 동아리에서 내보내졌습니다.",
+                NotificationTargetType.CLUB,
+                club.getId()
+        );
 
         return ClubMemberRemoveResponse.builder()
                 .clubId(club.getId())

@@ -2,6 +2,7 @@ package com.skhu.skhucapstone.post.application;
 
 import com.skhu.skhucapstone.club.domain.Club;
 import com.skhu.skhucapstone.club.domain.repository.ClubRepository;
+import com.skhu.skhucapstone.clubmember.domain.ClubJoinStatus;
 import com.skhu.skhucapstone.clubmember.domain.ClubMember;
 import com.skhu.skhucapstone.clubmember.domain.ClubRole;
 import com.skhu.skhucapstone.clubmember.domain.repository.ClubMemberRepository;
@@ -13,12 +14,16 @@ import com.skhu.skhucapstone.common.exception.CustomException;
 import com.skhu.skhucapstone.common.exception.ErrorCode;
 import com.skhu.skhucapstone.common.file.ImageUploadService;
 import com.skhu.skhucapstone.likes.domain.repository.LikesRepository;
+import com.skhu.skhucapstone.notification.application.NotificationService;
+import com.skhu.skhucapstone.notification.domain.NotificationTargetType;
+import com.skhu.skhucapstone.notification.domain.NotificationType;
 import com.skhu.skhucapstone.post.api.dto.request.PostCreateRequest;
 import com.skhu.skhucapstone.post.api.dto.request.PostUpdateRequest;
 import com.skhu.skhucapstone.post.api.dto.response.PostPageResponse;
 import com.skhu.skhucapstone.post.api.dto.response.PostResponse;
 import com.skhu.skhucapstone.post.domain.Post;
 import com.skhu.skhucapstone.post.domain.PostImage;
+import com.skhu.skhucapstone.post.domain.PostType;
 import com.skhu.skhucapstone.post.domain.repository.PostImageRepository;
 import com.skhu.skhucapstone.post.domain.repository.PostRepository;
 import com.skhu.skhucapstone.user.entity.User;
@@ -49,6 +54,7 @@ public class PostService {
     private final LikesRepository likesRepository;
     private final CoffeeChatProfileRepository coffeeChatProfileRepository;
     private final CommentRepository commentRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public PostResponse createPost(
@@ -87,7 +93,31 @@ public class PostService {
 
         savePostImages(savedPost, request.imageUrls());
 
+        notifyClubMembersOfNotice(club, user, savedPost);
+
         return toPostResponse(savedPost, userId);
+    }
+
+    // 공지만 알린다. 일반 게시글까지 알리면 동아리원 알림함이 금세 가득 찬다.
+    private void notifyClubMembersOfNotice(Club club, User writer, Post post) {
+        if (post.getPostType() != PostType.NOTICE) {
+            return;
+        }
+
+        List<User> members = clubMemberRepository
+                .findByClubAndClubJoinStatus(club, ClubJoinStatus.JOINED)
+                .stream()
+                .map(ClubMember::getUser)
+                .toList();
+
+        notificationService.notifyAll(
+                members,
+                writer,
+                NotificationType.CLUB_NOTICE_CREATED,
+                club.getClubName() + " 동아리에 새 공지가 올라왔습니다.",
+                NotificationTargetType.POST,
+                post.getPostId()
+        );
     }
 
     public PostPageResponse getPosts(

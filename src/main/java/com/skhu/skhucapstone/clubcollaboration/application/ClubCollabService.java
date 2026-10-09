@@ -13,6 +13,9 @@ import com.skhu.skhucapstone.clubmember.domain.ClubRole;
 import com.skhu.skhucapstone.clubmember.domain.repository.ClubMemberRepository;
 import com.skhu.skhucapstone.common.exception.CustomException;
 import com.skhu.skhucapstone.common.exception.ErrorCode;
+import com.skhu.skhucapstone.notification.application.NotificationService;
+import com.skhu.skhucapstone.notification.domain.NotificationTargetType;
+import com.skhu.skhucapstone.notification.domain.NotificationType;
 import com.skhu.skhucapstone.user.entity.User;
 import com.skhu.skhucapstone.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +45,7 @@ public class ClubCollabService {
     private final ClubMemberRepository clubMemberRepository;
     private final ChatService chatService;
     private final ImageUploadService imageUploadService;
+    private final NotificationService notificationService;
 
     @Transactional
     public ClubCollabResponse createCollab(
@@ -157,6 +161,18 @@ public class ClubCollabService {
         ChatRoomRes chatRoom = chatService.createOrGetChatRoom(
                 userId,
                 collab.getUser().getUserId()
+        );
+
+        User applicant = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        notificationService.notify(
+                collab.getUser(),
+                applicant,
+                NotificationType.CLUB_COLLABORATION_APPLY,
+                applicant.getName() + "님이 협업 모집글 '" + collab.getTitle() + "'에 문의했습니다.",
+                NotificationTargetType.CHAT_ROOM,
+                chatRoom.getChatRoomId()
         );
 
         return ClubCollabApplyResponse.builder()
