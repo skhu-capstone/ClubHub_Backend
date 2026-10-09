@@ -40,7 +40,7 @@ public class SecurityConfig {
                         // 구글 로그인
                         .requestMatchers("/api/auth/google/login").permitAll()
 
-                        // 학교 이메일 인증 관련 API
+                        // 학교 이메일 인증 관련 API (로그인 필수)
                         .requestMatchers("/api/auth/email/**").authenticated()
 
                         // 메인페이지는 누구나 조회 가능
@@ -52,13 +52,22 @@ public class SecurityConfig {
                                 "/api/coffeechat/profiles/**"
                         ).access(schoolEmailAuthorizationManager)
 
-                        // 비로그인 사용자도 조회 가능
+                        // 동아리 부원 명단은 학교 이메일 인증 필수
                         .requestMatchers(HttpMethod.GET,
+                                "/api/clubs/{clubId}/members"
+                        ).access(schoolEmailAuthorizationManager)
+
+                        // 비로그인 사용자도 조회 가능한 공개 API
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/clubs",
+                                "/api/clubs/{clubId}",
+                                "/api/clubs/{clubId}/posts",
                                 "/api/posts",
-                                "/api/posts/**",
-                                "/api/clubs/**",
-                                "/api/club-collaborations/**",
-                                "/api/project-recruitments/**"
+                                "/api/posts/{postId}",
+                                "/api/club-collaborations",
+                                "/api/club-collaborations/{collabId}",
+                                "/api/project-recruitments",
+                                "/api/project-recruitments/{projectRecruitmentId}"
                         ).permitAll()
 
                         // 학교 이메일 인증 후 이용 가능한 개인 기능
@@ -103,6 +112,7 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 
