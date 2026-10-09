@@ -25,7 +25,13 @@ public class ChatController {
 
     // 채팅방 isNew=true면 생성, false면 기존 채팅방 반환
     @PostMapping("/rooms")
-    @Operation(summary = "채팅방 생성 or 반환", description = "상대방과의 채팅방이 없으면 생성하고, 있으면 기존 채팅방을 반환합니다.")
+    @Operation(
+            summary = "채팅방 생성 or 반환",
+            description = "상대방과의 채팅방이 없으면 생성하고, 있으면 기존 채팅방을 반환합니다. "
+                    + "커피챗이나 프로젝트 모집글에서 말을 건 경우 source(COFFEE_CHAT, PROJECT_RECRUITMENT)와 "
+                    + "sourceId(해당 글 id)를 함께 보내면 상대방에게 맞는 문구의 알림이 갑니다. "
+                    + "source를 생략하면 커피챗으로 간주하며, 이때는 채팅방이 새로 생길 때만 알림을 보냅니다."
+    )
     public ResponseEntity<ApiResponse<ChatRoomRes>> createOrGetChatRoom(
             @AuthenticationPrincipal Long userId,
             @RequestBody ChatRoomCreateReq req) {

@@ -13,6 +13,9 @@ import com.skhu.skhucapstone.clubmember.domain.ClubRole;
 import com.skhu.skhucapstone.clubmember.domain.repository.ClubMemberRepository;
 import com.skhu.skhucapstone.common.exception.CustomException;
 import com.skhu.skhucapstone.common.exception.ErrorCode;
+import com.skhu.skhucapstone.notification.application.NotificationService;
+import com.skhu.skhucapstone.notification.domain.NotificationTargetType;
+import com.skhu.skhucapstone.notification.domain.NotificationType;
 import com.skhu.skhucapstone.user.entity.User;
 import com.skhu.skhucapstone.user.repository.UserRepository;
 import com.skhu.skhucapstone.clubevent.api.dto.request.ClubEventUpdateRequest;
@@ -33,6 +36,7 @@ public class ClubEventService {
     private final ClubEventRepository clubEventRepository;
     private final ClubMemberRepository clubMemberRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public ClubEventResponse createEvent(
@@ -57,6 +61,21 @@ public class ClubEventService {
                 .build();
 
         ClubEvent savedEvent = clubEventRepository.save(clubEvent);
+
+        List<User> members = clubMemberRepository
+                .findByClubAndClubJoinStatus(club, ClubJoinStatus.JOINED)
+                .stream()
+                .map(ClubMember::getUser)
+                .toList();
+
+        notificationService.notifyAll(
+                members,
+                user,
+                NotificationType.CLUB_EVENT_CREATED,
+                club.getClubName() + " 동아리에 새 일정이 등록되었습니다.",
+                NotificationTargetType.CLUB_EVENT,
+                savedEvent.getId()
+        );
 
         return ClubEventResponse.from(savedEvent);
     }

@@ -6,6 +6,9 @@ import com.skhu.skhucapstone.comment.domain.Comment;
 import com.skhu.skhucapstone.comment.domain.repository.CommentRepository;
 import com.skhu.skhucapstone.common.exception.CustomException;
 import com.skhu.skhucapstone.common.exception.ErrorCode;
+import com.skhu.skhucapstone.notification.application.NotificationService;
+import com.skhu.skhucapstone.notification.domain.NotificationTargetType;
+import com.skhu.skhucapstone.notification.domain.NotificationType;
 import com.skhu.skhucapstone.post.domain.Post;
 import com.skhu.skhucapstone.post.domain.repository.PostRepository;
 import com.skhu.skhucapstone.user.entity.User;
@@ -26,6 +29,7 @@ public class CommentService {
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public CommentResponse createComment(
@@ -49,6 +53,15 @@ public class CommentService {
                 .build();
 
         Comment savedComment = commentRepository.save(comment);
+
+        notificationService.notify(
+                post.getUser(),
+                user,
+                NotificationType.POST_COMMENT,
+                user.getName() + "님이 회원님의 게시글에 댓글을 남겼습니다.",
+                NotificationTargetType.POST,
+                post.getPostId()
+        );
 
         return CommentResponse.builder()
                 .commentId(savedComment.getCommentId())
