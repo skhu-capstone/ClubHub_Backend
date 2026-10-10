@@ -227,10 +227,7 @@ public class PostService {
     }
 
     @Transactional
-    public void deletePost(
-            Long postId,
-            Long userId
-    ) {
+    public void deletePost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() ->
                         new CustomException(ErrorCode.POST_NOT_FOUND));
@@ -240,10 +237,12 @@ public class PostService {
         List<PostImage> images =
                 postImageRepository.findByPostOrderByImageOrderAsc(post);
 
+        commentRepository.deleteByPost(post);
+        likesRepository.deleteByPost(post);
         postImageRepository.deleteByPost(post);
+
         postRepository.delete(post);
 
-        // 게시글이 사라지면 이미지도 참조할 곳이 없으므로 저장소에서 지운다.
         images.forEach(postImage ->
                 imageUploadService.delete(postImage.getImageUrl()));
     }
