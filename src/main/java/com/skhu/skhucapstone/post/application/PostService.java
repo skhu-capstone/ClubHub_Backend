@@ -29,6 +29,9 @@ import com.skhu.skhucapstone.post.domain.repository.PostRepository;
 import com.skhu.skhucapstone.user.entity.User;
 import com.skhu.skhucapstone.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -40,6 +43,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -227,25 +231,37 @@ public class PostService {
     }
 
     @Transactional
-    public void deletePost(
-            Long postId,
-            Long userId
-    ) {
+    public void deletePost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() ->
                         new CustomException(ErrorCode.POST_NOT_FOUND));
 
         validateWriter(post, userId, ErrorCode.POST_DELETE_FORBIDDEN);
 
-        List<PostImage> images =
-                postImageRepository.findByPostOrderByImageOrderAsc(post);
+        List<String> imageUrls = postImageRepository.findByPostOrderByImageOrderAsc(post)
+                .stream()
+                .map(PostImage::getImageUrl)
+                .toList();
 
+        commentRepository.deleteByPost(post);
+        likesRepository.deleteByPost(post);
         postImageRepository.deleteByPost(post);
+
         postRepository.delete(post);
 
-        // 게시글이 사라지면 이미지도 참조할 곳이 없으므로 저장소에서 지운다.
-        images.forEach(postImage ->
-                imageUploadService.delete(postImage.getImageUrl()));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                for (String imageUrl : imageUrls) {
+                    try {
+                        imageUploadService.delete(imageUrl);
+                    } catch (Exception e) {
+                        log.error("게시글 삭제 후 이미지 정리 실패: postId={}, imageUrl={}",
+                                postId, imageUrl, e);
+                    }
+                }
+            }
+        });
     }
 
     @Transactional
