@@ -79,7 +79,7 @@ public class ClubMemberService {
             clubMember.reapply(request.joinMessage());
         }
 
-        notifyManagersOfJoinRequest(club, user);
+        notifyPresidentOfJoinRequest(club, user);
 
         return ClubJoinResponse.builder()
                 .clubId(club.getId())
@@ -90,18 +90,17 @@ public class ClubMemberService {
                 .build();
     }
 
-    // 승인·거절은 대표뿐 아니라 운영진도 할 수 있으므로 둘 다에게 알린다.
-    private void notifyManagersOfJoinRequest(Club club, User applicant) {
-        List<User> managers = clubMemberRepository
+    // 가입 신청은 대표가 처리하기로 해서 대표에게만 알린다.
+    private void notifyPresidentOfJoinRequest(Club club, User applicant) {
+        List<User> presidents = clubMemberRepository
                 .findByClubAndClubJoinStatus(club, ClubJoinStatus.JOINED)
                 .stream()
-                .filter(member -> member.getRole() == ClubRole.PRESIDENT
-                        || member.getRole() == ClubRole.STAFF)
+                .filter(member -> member.getRole() == ClubRole.PRESIDENT)
                 .map(ClubMember::getUser)
                 .toList();
 
         notificationService.notifyAll(
-                managers,
+                presidents,
                 applicant,
                 NotificationType.CLUB_JOIN_REQUEST,
                 applicant.getName() + "님이 " + club.getClubName() + " 동아리에 가입을 신청했습니다.",
