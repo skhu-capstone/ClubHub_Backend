@@ -41,3 +41,7 @@ application*.yml
 
 .DS_Store
 .claude/
+
+### iCloud 동기화를 피하려고 .git 실제 내용을 옮겨 둔 폴더.
+### 추적하지 않을 뿐 아니라, IDE가 매번 수백 개 파일을 훑지 않도록 제외한다.
+.git.nosync/
