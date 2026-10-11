@@ -72,6 +72,9 @@ public class SecurityConfig {
         config.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "https://skhucapstone.duckdns.org",
+                // 혹시나 몰라 둘 다 열어 둡니다
+                "https://www.clubhubb.co.kr",
+                "https://clubhubb.co.kr",
                 "https://capstone-frontend-tawny.vercel.app"
         ));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
