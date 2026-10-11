@@ -28,6 +28,7 @@ import com.skhu.skhucapstone.post.domain.repository.PostImageRepository;
 import com.skhu.skhucapstone.post.domain.repository.PostRepository;
 import com.skhu.skhucapstone.user.entity.User;
 import com.skhu.skhucapstone.user.repository.UserRepository;
+import com.skhu.skhucapstone.post.api.dto.request.PostOrderUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -42,6 +43,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -169,7 +174,7 @@ public class PostService {
         Pageable pageable = PageRequest.of(page, size);
 
         Page<Post> posts =
-                postRepository.findByClubOrderByCreatedAtDesc(
+                postRepository.findByClubOrderByDisplayOrder(
                         club,
                         pageable
                 );
@@ -436,5 +441,57 @@ public class PostService {
                 .totalPages(posts.getTotalPages())
                 .last(posts.isLast())
                 .build();
+    }
+
+    @Transactional
+    public void updatePostOrder(
+            Long clubId,
+            Long userId,
+            PostOrderUpdateRequest request
+    ) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.CLUB_NOT_FOUND));
+
+        if (userId == null) {
+            throw new CustomException(ErrorCode.POST_ORDER_FORBIDDEN);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        ClubMember clubMember = clubMemberRepository.findByClubAndUser(club, user)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_ORDER_FORBIDDEN));
+
+        if (clubMember.getClubJoinStatus() != ClubJoinStatus.JOINED
+                || (clubMember.getRole() != ClubRole.STAFF
+                && clubMember.getRole() != ClubRole.PRESIDENT)) {
+            throw new CustomException(ErrorCode.POST_ORDER_FORBIDDEN);
+        }
+
+        List<Post> posts = postRepository.findByClub(club);
+        List<Long> postIds = request.postIds();
+
+        Set<Long> requestedIds = new HashSet<>(postIds);
+
+        if (postIds.size() != posts.size()
+                || requestedIds.size() != postIds.size()
+                || posts.stream().anyMatch(post ->
+                !requestedIds.contains(post.getPostId()))) {
+            throw new CustomException(ErrorCode.POST_ORDER_INVALID);
+        }
+
+        Map<Long, Post> postMap = new HashMap<>();
+
+        for (Post post : posts) {
+            postMap.put(post.getPostId(), post);
+        }
+
+        for (int i = 0; i < postIds.size(); i++) {
+            Post post = postMap.get(postIds.get(i));
+            post.updateDisplayOrder((long) i);
+        }
     }
 }

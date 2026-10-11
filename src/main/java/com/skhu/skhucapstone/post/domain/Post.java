@@ -28,6 +28,9 @@ public class Post {
     @Column(nullable = false)
     private PostType postType;
 
+    @Column(name = "display_order")
+    private Long displayOrder;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -51,5 +54,9 @@ public class Post {
         this.content = content;
         this.postType = postType;
         this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateDisplayOrder(Long displayOrder) {
+        this.displayOrder = displayOrder;
     }
 }

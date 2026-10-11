@@ -9,6 +9,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface PostRepository extends JpaRepository<Post, Long> {
 
@@ -30,4 +31,27 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     ORDER BY COUNT(l) DESC, p.createdAt DESC
     """)
     Page<Post> findAllOrderByLikeCountDesc(Pageable pageable);
+
+    @Query(
+            value = """
+        SELECT p
+        FROM Post p
+        WHERE p.club = :club
+        ORDER BY
+            CASE WHEN p.displayOrder IS NULL THEN 0 ELSE 1 END ASC,
+            p.displayOrder ASC,
+            p.createdAt DESC,
+            p.postId DESC
+        """,
+            countQuery = """
+        SELECT COUNT(p)
+        FROM Post p
+        WHERE p.club = :club
+        """
+    )
+    Page<Post> findByClubOrderByDisplayOrder(
+            @Param("club") Club club,
+            Pageable pageable
+    );
+
 }
