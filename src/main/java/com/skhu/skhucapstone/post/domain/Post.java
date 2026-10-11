@@ -59,4 +59,5 @@ public class Post {
     public void updateDisplayOrder(Long displayOrder) {
         this.displayOrder = displayOrder;
     }
+
 }
