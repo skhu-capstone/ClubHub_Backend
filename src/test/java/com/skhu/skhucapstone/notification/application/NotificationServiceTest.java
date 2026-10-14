@@ -14,6 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,6 +33,9 @@ class NotificationServiceTest {
 
     @Mock
     private NotificationRepository notificationRepository;
+
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private NotificationService notificationService;
@@ -57,6 +61,13 @@ class NotificationServiceTest {
                 .build();
     }
 
+    private NotificationCreateEvent publishedEvent() {
+        ArgumentCaptor<NotificationCreateEvent> captor =
+                ArgumentCaptor.forClass(NotificationCreateEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        return captor.getValue();
+    }
+
     @Test
     @DisplayName("다른 사람이 한 행동은 알림으로 남는다")
     void notifiesWhenActorIsSomeoneElse() {
@@ -68,11 +79,12 @@ class NotificationServiceTest {
                 NotificationTargetType.POST,
                 10L);
 
-        ArgumentCaptor<Notification> saved = ArgumentCaptor.forClass(Notification.class);
-        verify(notificationRepository).save(saved.capture());
+        NotificationCreateEvent event = publishedEvent();
 
-        assertThat(saved.getValue().getReceiver().getUserId()).isEqualTo(OWNER_ID);
-        assertThat(saved.getValue().isRead()).isFalse();
+        assertThat(event.receiverIds()).containsExactly(OWNER_ID);
+        assertThat(event.type()).isEqualTo(NotificationType.POST_COMMENT);
+        assertThat(event.targetType()).isEqualTo(NotificationTargetType.POST);
+        assertThat(event.targetId()).isEqualTo(10L);
     }
 
     @Test
@@ -88,7 +100,7 @@ class NotificationServiceTest {
                 NotificationTargetType.POST,
                 10L);
 
-        verify(notificationRepository, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any(NotificationCreateEvent.class));
     }
 
     @Test
@@ -104,12 +116,7 @@ class NotificationServiceTest {
                 NotificationTargetType.POST,
                 10L);
 
-        ArgumentCaptor<List<Notification>> saved = ArgumentCaptor.forClass(List.class);
-        verify(notificationRepository).saveAll(saved.capture());
-
-        assertThat(saved.getValue())
-                .extracting(n -> n.getReceiver().getUserId())
-                .containsExactly(OWNER_ID, OTHER_ID);
+        assertThat(publishedEvent().receiverIds()).containsExactly(OWNER_ID, OTHER_ID);
     }
 
     @Test
@@ -125,7 +132,7 @@ class NotificationServiceTest {
                 NotificationTargetType.CLUB_EVENT,
                 5L);
 
-        verify(notificationRepository, never()).saveAll(any());
+        verify(eventPublisher, never()).publishEvent(any(NotificationCreateEvent.class));
     }
 
     @Test
