@@ -29,6 +29,7 @@ import com.skhu.skhucapstone.post.domain.repository.PostRepository;
 import com.skhu.skhucapstone.user.entity.User;
 import com.skhu.skhucapstone.user.repository.UserRepository;
 import com.skhu.skhucapstone.post.api.dto.request.PostOrderUpdateRequest;
+import com.skhu.skhucapstone.post.api.dto.request.PostPinUpdateRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -395,13 +396,13 @@ public class PostService {
                 .content(post.getContent())
                 .imageUrls(imageUrls)
                 .postType(post.getPostType())
+                .isPinned(post.getIsPinned())
                 .writerName(post.getUser().getName())
                 .writerCoffeeChatProfileImageUrl(writerCoffeeChatProfileImageUrl)
                 .likeCount(likeCount)
                 .liked(liked)
                 .comments(comments)
                 .createdAt(post.getCreatedAt())
-                // 수정·삭제 모두 작성자 본인만 가능하다.
                 .canUpdate(isWriter)
                 .canDelete(isWriter)
                 .build();
@@ -493,5 +494,36 @@ public class PostService {
             Post post = postMap.get(postIds.get(i));
             post.updateDisplayOrder((long) i);
         }
+    }
+
+    @Transactional
+    public void updatePostPin(
+            Long postId,
+            Long userId,
+            PostPinUpdateRequest request
+    ) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_NOT_FOUND));
+
+        if (userId == null) {
+            throw new CustomException(ErrorCode.POST_PIN_FORBIDDEN);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        ClubMember clubMember = clubMemberRepository.findByClubAndUser(post.getClub(), user)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_PIN_FORBIDDEN));
+
+        if (clubMember.getClubJoinStatus() != ClubJoinStatus.JOINED
+                || (clubMember.getRole() != ClubRole.STAFF
+                && clubMember.getRole() != ClubRole.PRESIDENT)) {
+            throw new CustomException(ErrorCode.POST_PIN_FORBIDDEN);
+        }
+
+        post.updatePinned(request.isPinned());
     }
 }
