@@ -104,9 +104,11 @@ jobs:
             fi
 
             echo "[3/5] Run new container on port ${PORT}"
+            # 127.0.0.1에만 포트를 연다. 그냥 -p ${PORT}:${PORT}로 열면 0.0.0.0에 바인딩되어
+            # 인터넷에서 nginx를 건너뛰고 평문 HTTP로 앱에 직접 접근할 수 있다.
             sudo docker run -d \
               --name "$NAME" \
-              -p ${PORT}:${PORT} \
+              -p 127.0.0.1:${PORT}:${PORT} \
               -e TZ="$TZ" \
               -e SPRING_PROFILES_ACTIVE=prod \
               -v /app/uploads:/app/uploads \
