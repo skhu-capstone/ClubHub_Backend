@@ -170,4 +170,5 @@ public class PostController {
 
         return ResponseEntity.ok(ApiResponse.success(SuccessCode.POST_PIN_UPDATE_SUCCESS, null));
     }
+
 }
