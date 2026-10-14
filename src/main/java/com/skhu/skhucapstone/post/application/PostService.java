@@ -28,7 +28,12 @@ import com.skhu.skhucapstone.post.domain.repository.PostImageRepository;
 import com.skhu.skhucapstone.post.domain.repository.PostRepository;
 import com.skhu.skhucapstone.user.entity.User;
 import com.skhu.skhucapstone.user.repository.UserRepository;
+import com.skhu.skhucapstone.post.api.dto.request.PostOrderUpdateRequest;
+import com.skhu.skhucapstone.post.api.dto.request.PostPinUpdateRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -39,7 +44,12 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -165,7 +175,7 @@ public class PostService {
         Pageable pageable = PageRequest.of(page, size);
 
         Page<Post> posts =
-                postRepository.findByClubOrderByCreatedAtDesc(
+                postRepository.findByClubOrderByDisplayOrder(
                         club,
                         pageable
                 );
@@ -227,25 +237,37 @@ public class PostService {
     }
 
     @Transactional
-    public void deletePost(
-            Long postId,
-            Long userId
-    ) {
+    public void deletePost(Long postId, Long userId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() ->
                         new CustomException(ErrorCode.POST_NOT_FOUND));
 
         validateWriter(post, userId, ErrorCode.POST_DELETE_FORBIDDEN);
 
-        List<PostImage> images =
-                postImageRepository.findByPostOrderByImageOrderAsc(post);
+        List<String> imageUrls = postImageRepository.findByPostOrderByImageOrderAsc(post)
+                .stream()
+                .map(PostImage::getImageUrl)
+                .toList();
 
+        commentRepository.deleteByPost(post);
+        likesRepository.deleteByPost(post);
         postImageRepository.deleteByPost(post);
+
         postRepository.delete(post);
 
-        // 게시글이 사라지면 이미지도 참조할 곳이 없으므로 저장소에서 지운다.
-        images.forEach(postImage ->
-                imageUploadService.delete(postImage.getImageUrl()));
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                for (String imageUrl : imageUrls) {
+                    try {
+                        imageUploadService.delete(imageUrl);
+                    } catch (Exception e) {
+                        log.error("게시글 삭제 후 이미지 정리 실패: postId={}, imageUrl={}",
+                                postId, imageUrl, e);
+                    }
+                }
+            }
+        });
     }
 
     @Transactional
@@ -374,13 +396,13 @@ public class PostService {
                 .content(post.getContent())
                 .imageUrls(imageUrls)
                 .postType(post.getPostType())
+                .isPinned(post.getIsPinned())
                 .writerName(post.getUser().getName())
                 .writerCoffeeChatProfileImageUrl(writerCoffeeChatProfileImageUrl)
                 .likeCount(likeCount)
                 .liked(liked)
                 .comments(comments)
                 .createdAt(post.getCreatedAt())
-                // 수정·삭제 모두 작성자 본인만 가능하다.
                 .canUpdate(isWriter)
                 .canDelete(isWriter)
                 .build();
@@ -420,5 +442,88 @@ public class PostService {
                 .totalPages(posts.getTotalPages())
                 .last(posts.isLast())
                 .build();
+    }
+
+    @Transactional
+    public void updatePostOrder(
+            Long clubId,
+            Long userId,
+            PostOrderUpdateRequest request
+    ) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.CLUB_NOT_FOUND));
+
+        if (userId == null) {
+            throw new CustomException(ErrorCode.POST_ORDER_FORBIDDEN);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        ClubMember clubMember = clubMemberRepository.findByClubAndUser(club, user)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_ORDER_FORBIDDEN));
+
+        if (clubMember.getClubJoinStatus() != ClubJoinStatus.JOINED
+                || (clubMember.getRole() != ClubRole.STAFF
+                && clubMember.getRole() != ClubRole.PRESIDENT)) {
+            throw new CustomException(ErrorCode.POST_ORDER_FORBIDDEN);
+        }
+
+        List<Post> posts = postRepository.findByClub(club);
+        List<Long> postIds = request.postIds();
+
+        Set<Long> requestedIds = new HashSet<>(postIds);
+
+        if (postIds.size() != posts.size()
+                || requestedIds.size() != postIds.size()
+                || posts.stream().anyMatch(post ->
+                !requestedIds.contains(post.getPostId()))) {
+            throw new CustomException(ErrorCode.POST_ORDER_INVALID);
+        }
+
+        Map<Long, Post> postMap = new HashMap<>();
+
+        for (Post post : posts) {
+            postMap.put(post.getPostId(), post);
+        }
+
+        for (int i = 0; i < postIds.size(); i++) {
+            Post post = postMap.get(postIds.get(i));
+            post.updateDisplayOrder((long) i);
+        }
+    }
+
+    @Transactional
+    public void updatePostPin(
+            Long postId,
+            Long userId,
+            PostPinUpdateRequest request
+    ) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_NOT_FOUND));
+
+        if (userId == null) {
+            throw new CustomException(ErrorCode.POST_PIN_FORBIDDEN);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        ClubMember clubMember = clubMemberRepository.findByClubAndUser(post.getClub(), user)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.POST_PIN_FORBIDDEN));
+
+        if (clubMember.getClubJoinStatus() != ClubJoinStatus.JOINED
+                || (clubMember.getRole() != ClubRole.STAFF
+                && clubMember.getRole() != ClubRole.PRESIDENT)) {
+            throw new CustomException(ErrorCode.POST_PIN_FORBIDDEN);
+        }
+
+        post.updatePinned(request.isPinned());
     }
 }

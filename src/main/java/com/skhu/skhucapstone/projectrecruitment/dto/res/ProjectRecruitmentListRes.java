@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -20,4 +21,6 @@ public class ProjectRecruitmentListRes {
     private LocalDate deadline;
 
     private String dDay;
+
+    private LocalDateTime createdAt;
 }

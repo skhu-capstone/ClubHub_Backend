@@ -37,4 +37,8 @@ public class User {
         this.schoolEmail = schoolEmail;
         this.isVerified = true;
     }
+
+    public void updateName(String name) {
+        this.name = name;
+    }
 }

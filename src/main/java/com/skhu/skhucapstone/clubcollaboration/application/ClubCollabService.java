@@ -184,9 +184,11 @@ public class ClubCollabService {
     }
 
     @Transactional
-    public String uploadCollabImage(Long collabId, MultipartFile file) {
+    public String uploadCollabImage(Long collabId, Long userId, MultipartFile file) {
         ClubCollaboration collab = clubCollabRepository.findById(collabId)
                 .orElseThrow(() -> new CustomException(ErrorCode.CLUB_COLLAB_NOT_FOUND));
+
+        validateCollabWriter(collab, userId, ErrorCode.CLUB_COLLAB_UPDATE_FORBIDDEN);
 
         if (collab.getImageUrl() != null) {
             imageUploadService.delete(collab.getImageUrl());
@@ -194,6 +196,7 @@ public class ClubCollabService {
 
         String imageUrl = imageUploadService.upload(file, "collab");
         collab.updateImage(imageUrl);
+
         return imageUrl;
     }
 

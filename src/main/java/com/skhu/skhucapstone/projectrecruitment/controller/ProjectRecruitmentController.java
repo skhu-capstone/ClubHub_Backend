@@ -87,12 +87,17 @@ public class ProjectRecruitmentController {
     }
 
     @PostMapping(value = "/{projectRecruitmentId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "프로젝트 팀원 모집글 이미지 업로드", description = "프로젝트 팀원 모집글 이미지를 업로드합니다.")
+    @Operation(summary = "프로젝트 팀원 모집글 이미지 업로드", description = "프로젝트 팀원 모집글 작성자만 이미지를 업로드할 수 있습니다.")
     public ResponseEntity<ApiResponse<String>> uploadRecruitmentImage(
             @PathVariable Long projectRecruitmentId,
-            @RequestPart MultipartFile file) {
-        String imageUrl = projectRecruitmentService.uploadRecruitmentImage(projectRecruitmentId, file);
-        return ResponseEntity.ok(ApiResponse.success(SuccessCode.PROJECT_RECRUITMENT_IMAGE_UPLOAD_SUCCESS, imageUrl));
+            @AuthenticationPrincipal Long userId,
+            @RequestPart MultipartFile file
+    ) {
+        String imageUrl = projectRecruitmentService.uploadRecruitmentImage(projectRecruitmentId, userId, file);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(SuccessCode.PROJECT_RECRUITMENT_IMAGE_UPLOAD_SUCCESS, imageUrl)
+        );
     }
 
     @DeleteMapping("/{projectRecruitmentId}")

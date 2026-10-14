@@ -7,6 +7,8 @@ import com.skhu.skhucapstone.post.api.dto.request.PostUpdateRequest;
 import com.skhu.skhucapstone.post.api.dto.response.PostPageResponse;
 import com.skhu.skhucapstone.post.api.dto.response.PostResponse;
 import com.skhu.skhucapstone.post.application.PostService;
+import com.skhu.skhucapstone.post.api.dto.request.PostPinUpdateRequest;
+import com.skhu.skhucapstone.post.api.dto.request.PostOrderUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -137,4 +139,36 @@ public class PostController {
 
         return ResponseEntity.ok(ApiResponse.success(SuccessCode.POST_DELETE_SUCCESS, null));
     }
+
+    @PatchMapping("/clubs/{clubId}/posts/order")
+    @Operation(
+            summary = "게시글 순서 변경",
+            description = "동아리 대표 또는 운영진이 공지사항과 일반 게시글의 순서를 변경합니다."
+    )
+    public ResponseEntity<ApiResponse<Void>> updatePostOrder(
+            @PathVariable Long clubId,
+            @AuthenticationPrincipal Long userId,
+            @RequestBody @Valid PostOrderUpdateRequest request
+    ) {
+        postService.updatePostOrder(clubId, userId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(SuccessCode.POST_ORDER_UPDATE_SUCCESS, null));
+    }
+
+    @PatchMapping("/posts/{postId}/pin")
+    @Operation(
+            summary = "게시글 고정 및 해제",
+            description = "해당 동아리의 대표 또는 운영진이 작성자와 관계없이 게시글을 고정하거나 해제합니다."
+    )
+    public ResponseEntity<ApiResponse<Void>> updatePostPin(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal Long userId,
+            @RequestBody @Valid PostPinUpdateRequest request
+    ) {
+        postService.updatePostPin(postId, userId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(SuccessCode.POST_PIN_UPDATE_SUCCESS, null));
+    }
+
 }

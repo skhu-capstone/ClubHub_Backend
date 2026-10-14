@@ -95,12 +95,17 @@ public class ClubCollabController {
     }
 
     @PostMapping(value = "/{collabId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "협업 모집글 이미지 업로드", description = "협업 모집글 이미지를 업로드합니다.")
+    @Operation(summary = "협업 모집글 이미지 업로드", description = "협업 모집글 작성자만 이미지를 업로드할 수 있습니다.")
     public ResponseEntity<ApiResponse<String>> uploadCollabImage(
             @PathVariable Long collabId,
-            @RequestPart MultipartFile file) {
-        String imageUrl = clubCollabService.uploadCollabImage(collabId, file);
-        return ResponseEntity.ok(ApiResponse.success(SuccessCode.CLUB_COLLAB_IMAGE_UPLOAD_SUCCESS, imageUrl));
+            @AuthenticationPrincipal Long userId,
+            @RequestPart MultipartFile file
+    ) {
+        String imageUrl = clubCollabService.uploadCollabImage(collabId, userId, file);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(SuccessCode.CLUB_COLLAB_IMAGE_UPLOAD_SUCCESS, imageUrl)
+        );
     }
 
     @PostMapping("/{collabId}/apply")

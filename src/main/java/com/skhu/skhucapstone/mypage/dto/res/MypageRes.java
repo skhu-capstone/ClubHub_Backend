@@ -1,4 +1,4 @@
-package com.skhu.skhucapstone.mypage.dto;
+package com.skhu.skhucapstone.mypage.dto.res;
 
 import com.skhu.skhucapstone.coffeechat.dto.res.CoffeeChatProfileRes;
 import com.skhu.skhucapstone.user.entity.User;
