@@ -35,6 +35,7 @@ public enum SuccessCode {
     POST_UPDATE_SUCCESS(HttpStatus.OK, "POST_UPDATE_SUCCESS", "게시글 수정이 완료되었습니다."),
     POST_DELETE_SUCCESS(HttpStatus.OK, "POST_DELETE_SUCCESS", "게시글 삭제가 완료되었습니다."),
     POST_ORDER_UPDATE_SUCCESS(HttpStatus.OK, "POST_ORDER_UPDATE_SUCCESS", "게시글 순서 변경이 완료되었습니다."),
+    POST_PIN_UPDATE_SUCCESS(HttpStatus.OK, "POST_PIN_UPDATE_SUCCESS", "게시글 고정 상태가 변경되었습니다."),
 
     //Commment
     COMMENT_DELETE_SUCCESS(HttpStatus.OK, "COMMENT_DELETE_SUCCESS", "댓글 삭제가 완료 되었습니다."),

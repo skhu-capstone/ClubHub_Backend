@@ -7,6 +7,7 @@ import com.skhu.skhucapstone.post.api.dto.request.PostUpdateRequest;
 import com.skhu.skhucapstone.post.api.dto.response.PostPageResponse;
 import com.skhu.skhucapstone.post.api.dto.response.PostResponse;
 import com.skhu.skhucapstone.post.application.PostService;
+import com.skhu.skhucapstone.post.api.dto.request.PostPinUpdateRequest;
 import com.skhu.skhucapstone.post.api.dto.request.PostOrderUpdateRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -154,4 +155,20 @@ public class PostController {
         return ResponseEntity.ok(
                 ApiResponse.success(SuccessCode.POST_ORDER_UPDATE_SUCCESS, null));
     }
+
+    @PatchMapping("/posts/{postId}/pin")
+    @Operation(
+            summary = "게시글 고정 및 해제",
+            description = "해당 동아리의 대표 또는 운영진이 작성자와 관계없이 게시글을 고정하거나 해제합니다."
+    )
+    public ResponseEntity<ApiResponse<Void>> updatePostPin(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal Long userId,
+            @RequestBody @Valid PostPinUpdateRequest request
+    ) {
+        postService.updatePostPin(postId, userId, request);
+
+        return ResponseEntity.ok(ApiResponse.success(SuccessCode.POST_PIN_UPDATE_SUCCESS, null));
+    }
+
 }

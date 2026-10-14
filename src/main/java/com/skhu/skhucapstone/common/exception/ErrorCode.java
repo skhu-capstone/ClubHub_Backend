@@ -73,6 +73,7 @@ public enum ErrorCode {
     POST_DELETE_FORBIDDEN(HttpStatus.FORBIDDEN, "POST_DELETE_FORBIDDEN", "게시글 삭제 권한이 없습니다."),
     POST_ORDER_FORBIDDEN(HttpStatus.FORBIDDEN, "POST_ORDER_FORBIDDEN", "게시글 순서를 변경할 권한이 없습니다."),
     POST_ORDER_INVALID(HttpStatus.BAD_REQUEST, "POST_ORDER_INVALID", "게시글 순서 목록이 올바르지 않습니다."),
+    POST_PIN_FORBIDDEN(HttpStatus.FORBIDDEN, "POST_PIN_FORBIDDEN", "게시글을 고정하거나 해제할 권한이 없습니다."),
 
     // 협업모집
     CLUB_COLLAB_NOT_FOUND(HttpStatus.NOT_FOUND, "CLUB_COLLAB_NOT_FOUND", "협업 모집글을 찾을 수 없습니다."),
