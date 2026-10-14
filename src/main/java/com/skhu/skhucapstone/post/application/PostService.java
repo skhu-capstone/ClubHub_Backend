@@ -255,19 +255,40 @@ public class PostService {
 
         postRepository.delete(post);
 
+        deleteImagesAfterCommit(postId, imageUrls);
+    }
+
+    // 저장소에서 이미지를 지우는 일은 DB 삭제가 확정된 뒤에 해야 한다.
+    // 중간에 롤백되면 글은 그대로인데 이미지만 사라지기 때문이다.
+    // 다만 트랜잭션 없이 호출되면 기다릴 커밋이 없고, 그대로 등록하면 예외가 난다.
+    private void deleteImagesAfterCommit(Long postId, List<String> imageUrls) {
+        if (imageUrls.isEmpty()) {
+            return;
+        }
+
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            deleteImagesFromStorage(postId, imageUrls);
+            return;
+        }
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                for (String imageUrl : imageUrls) {
-                    try {
-                        imageUploadService.delete(imageUrl);
-                    } catch (Exception e) {
-                        log.error("게시글 삭제 후 이미지 정리 실패: postId={}, imageUrl={}",
-                                postId, imageUrl, e);
-                    }
-                }
+                deleteImagesFromStorage(postId, imageUrls);
             }
         });
+    }
+
+    // 하나가 실패해도 나머지는 계속 지운다. 여기서 멈추면 저장소에 더 많이 남는다.
+    private void deleteImagesFromStorage(Long postId, List<String> imageUrls) {
+        for (String imageUrl : imageUrls) {
+            try {
+                imageUploadService.delete(imageUrl);
+            } catch (Exception e) {
+                log.error("게시글 삭제 후 이미지 정리 실패: postId={}, imageUrl={}",
+                        postId, imageUrl, e);
+            }
+        }
     }
 
     @Transactional
