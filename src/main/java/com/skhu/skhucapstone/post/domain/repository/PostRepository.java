@@ -34,20 +34,21 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query(
             value = """
-        SELECT p
-        FROM Post p
-        WHERE p.club = :club
-        ORDER BY
-            CASE WHEN p.displayOrder IS NULL THEN 0 ELSE 1 END ASC,
-            p.displayOrder ASC,
-            p.createdAt DESC,
-            p.postId DESC
-        """,
+            SELECT p
+            FROM Post p
+            WHERE p.club = :club
+            ORDER BY
+                CASE WHEN p.isPinned = true THEN 0 ELSE 1 END ASC,
+                CASE WHEN p.displayOrder IS NULL THEN 0 ELSE 1 END ASC,
+                p.displayOrder ASC,
+                p.createdAt DESC,
+                p.postId DESC
+            """,
             countQuery = """
-        SELECT COUNT(p)
-        FROM Post p
-        WHERE p.club = :club
-        """
+            SELECT COUNT(p)
+            FROM Post p
+            WHERE p.club = :club
+            """
     )
     Page<Post> findByClubOrderByDisplayOrder(
             @Param("club") Club club,

@@ -31,6 +31,10 @@ public class Post {
     @Column(name = "display_order")
     private Long displayOrder;
 
+    @Builder.Default
+    @Column(name = "is_pinned", nullable = false)
+    private Boolean isPinned = false;
+
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
@@ -58,6 +62,10 @@ public class Post {
 
     public void updateDisplayOrder(Long displayOrder) {
         this.displayOrder = displayOrder;
+    }
+
+    public void updatePinned(boolean isPinned) {
+        this.isPinned = isPinned;
     }
 
 }
